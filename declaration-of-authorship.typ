@@ -11,7 +11,6 @@
   city,
   date-format,
 ) = {
-
   set par(first-line-indent: 0em)
 
   heading(level: 1, numbering: none, outlined: false, DECLARATION_OF_AUTHORSHIP_TITLE.at(language))
@@ -35,11 +34,11 @@
 
   v(2em)
   if (at-university) {
-    text(city + [, ] + end-date.display(date-format))
+    text(style: "italic", city + [, ] + end-date.display(date-format))
   } else {
     let authors-by-city = authors.map(author => author.company.city).dedup()
 
-    text(authors-by-city.join(", ", last: AND.at(language)) + [ ] + end-date.display(date-format))
+    text(style: "italic", authors-by-city.join(", ", last: AND.at(language)) + [ ] + end-date.display(date-format))
   }
 
   v(1em)
@@ -49,11 +48,13 @@
       gutter: 20pt,
       ..authors.map(author => {
         rect(
-          width: 80%, height: 3.5em, inset: 1pt,
+          width: 80%,
+          height: 3.5em,
+          inset: 1pt,
           stroke: (top: none, y: none, bottom: black),
           if author.keys().contains("signature") {
             box(author.signature)
-          }
+          },
         )
         author.name
       })
@@ -61,11 +62,13 @@
   } else {
     for author in authors {
       rect(
-        width: 40%, height: 4em, inset: 1pt,
+        width: 40%,
+        height: 4em,
+        inset: 1pt,
         stroke: (top: none, y: none, bottom: black),
         if author.keys().contains("signature") {
-            box(author.signature)
-        }
+          box(author.signature)
+        },
       )
       author.name
     }

@@ -48,7 +48,7 @@
   bib-style: "ieee",
   math-numbering: "(1)",
   enable-math-numbering: false,
-  logo-left: image("hda.svg"),
+  logo-left: image("logo_fbi_eut.pdf"),
   logo-right: none,
   ignored-link-label-keys-for-highlighting: (),
   abbr-list-csv: "abbr.csv",
@@ -92,9 +92,10 @@
 
   // ---------- Fonts & Related Measures ---------------------------------------
 
-  let body-font = "Palatino"
+  let body-font = "TeX Gyre Pagella"
   let body-size = 11pt
-  let heading-font = "Palatino"
+  let mono-font = "DejaVu Sans Mono"
+  let heading-font = "TeX Gyre Pagella"
   let h1-size = 20pt
   let h2-size = 11pt
   let h3-size = 11pt
@@ -107,7 +108,7 @@
   let base-side-margin = (210mm - classic-text-width) / 2
   let page-margin = (
     top: 2.5cm,
-    bottom: 3.5cm,
+    bottom: 3cm,
     left: base-side-margin + 2.5mm, // BCOR = 5mm => shift by half to the inner side
     right: base-side-margin - 2.5mm,
   )

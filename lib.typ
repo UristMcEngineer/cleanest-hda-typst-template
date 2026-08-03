@@ -1,8 +1,8 @@
 #import "@preview/codelst:2.0.2": *
 #import "@preview/hydra:0.6.1": hydra
 #import "@preview/abbr:0.3.0"
-#import "@preview/glossarium:0.5.6": make-glossary, register-glossary, print-glossary, gls, glspl
-#import "locale.typ": TABLE_OF_CONTENTS, APPENDIX, REFERENCES
+#import "@preview/glossarium:0.5.6": gls, glspl, make-glossary, print-glossary, register-glossary
+#import "locale.typ": APPENDIX, REFERENCES, TABLE_OF_CONTENTS
 #import "titlepage.typ": *
 #import "info-page.typ": *
 #import "confidentiality-statement.typ": *
@@ -12,7 +12,7 @@
 // Workaround for the lack of an `std` scope.
 #let std-bibliography = bibliography
 
-#let hda-abbr=abbr
+#let hda-abbr = abbr
 
 #let clean-hda(
   title: none,
@@ -100,7 +100,7 @@
   let h2-size = 11pt
   let h3-size = 11pt
   let h4-size = 11pt
-  let page-grid = 13.6pt  // vertical spacing on all pages
+  let page-grid = 13.6pt // vertical spacing on all pages
 
   // Latex Values based from @AI analysis
   let classic-text-width = 370pt
@@ -113,12 +113,11 @@
     right: base-side-margin - 2.5mm,
   )
 
-  
   // ---------- Basic Document Settings ---------------------------------------
 
   set document(title: title, author: authors.map(author => author.name))
-  let in-frontmatter = state("in-frontmatter", true)    // to control page number format in frontmatter
-  let in-body = state("in-body", true)                  // to control heading formatting in/outside of body
+  let in-frontmatter = state("in-frontmatter", true) // to control page number format in frontmatter
+  let in-body = state("in-body", true) // to control heading formatting in/outside of body
 
   // customize look of figure
   set figure.caption(separator: [ --- ], position: bottom)
@@ -168,26 +167,26 @@
       page-margin,
     )
   }
-  counter(page).update(1)  
+  counter(page).update(1)
 
   // ---------- Heading Format (Part I) ---------------------------------------
   show heading: set text(weight: "bold", font: heading-font)
-  show heading.where(level: 1): it => {v(2 * page-grid) + text(size: 2 * page-grid, it)}
+  show heading.where(level: 1): it => { v(2 * page-grid) + text(size: 2 * page-grid, it) }
 
   // ---------- Page Setup ---------------------------------------
 
   // adapt body text layout to basic measures
   set text(
-    font: body-font, 
-    lang: language, 
+    font: body-font,
+    lang: language,
     size: body-size,
-    top-edge: 0.75 * body-size, 
+    top-edge: 0.75 * body-size,
     bottom-edge: -0.25 * body-size,
     fill: luma(0),
   )
   set par(
     spacing: page-grid - body-size,
-    leading: page-grid - body-size, 
+    leading: page-grid - body-size,
     first-line-indent: 1em, // TODO
     justify: true,
   )
@@ -195,35 +194,29 @@
   set page(
     paper: "a4",
     margin: page-margin,
-    header:
-      grid(
-        columns: (1fr, 1fr),
-        align: (left, right),
-        row-gutter: 0.5em,
-        smallcaps(text(font: heading-font, size: body-size, 
-          context {
-            hydra(1, display: (_, it) => it.body, use-last: true, skip-starting: false)
-          },
-        )),
-        text(font: heading-font, size: body-size, 
-          number-type: "lining",
-          context {if in-frontmatter.get() {
-              counter(page).display("i")      // roman page numbers for the frontmatter
-            } else {
-              counter(page).display("1")      // arabic page numbers for the rest of the document
-            }
-          }
-        ),
-        grid.cell(colspan: 2, line(length: 100%, stroke: 0.5pt)),
-      ),
-      header-ascent: page-grid,
+    header: grid(
+      columns: (1fr, 1fr),
+      align: (left, right),
+      row-gutter: 0.5em,
+      smallcaps(text(font: heading-font, size: body-size, context {
+        hydra(1, display: (_, it) => it.body, use-last: true, skip-starting: false)
+      })),
+      text(font: heading-font, size: body-size, number-type: "lining", context {
+        if in-frontmatter.get() {
+          counter(page).display("i") // roman page numbers for the frontmatter
+        } else {
+          counter(page).display("1") // arabic page numbers for the rest of the document
+        }
+      }),
+      grid.cell(colspan: 2, line(length: 100%, stroke: 0.5pt)),
+    ),
+    header-ascent: page-grid,
   )
 
-
   // ========== FRONTMATTER ========================================
-  
+
   // ---------- INFO PAGE with Confidentiality Statement------------
-  
+
   if (show-info-page) {
     pagebreak()
     info-page(
@@ -245,7 +238,6 @@
     )
   }
 
-
   // ---------- Abstract ---------------------------------------
 
   if (show-abstract and abstract != none) {
@@ -262,8 +254,8 @@
     set block(above: page-grid - body-size)
     set text(font: heading-font, weight: "semibold", size: body-size)
     link(
-      it.element.location(),    // make entry linkable
-      it.indented(it.prefix(), it.body() + box(width: 1fr,) +  it.page())
+      it.element.location(), // make entry linkable
+      it.indented(it.prefix(), it.body() + box(width: 1fr) + it.page()),
     )
   }
 
@@ -272,13 +264,11 @@
     set block(above: page-grid - body-size)
     set text(font: heading-font, size: body-size)
     link(
-      it.element.location(),  // make entry linkable
+      it.element.location(), // make entry linkable
       it.indented(
-          it.prefix(),
-          it.body() + "  " +
-            box(width: 1fr, repeat([.], gap: 2pt), baseline: 30%) +
-            "  " + it.page()
-      )
+        it.prefix(),
+        it.body() + "  " + box(width: 1fr, repeat([.], gap: 2pt), baseline: 30%) + "  " + it.page(),
+      ),
     )
   }
   if (show-table-of-contents) {
@@ -289,7 +279,7 @@
     )
   }
 
-  // Abbreviations 
+  // Abbreviations
 
   if abbr-page-break {
     pagebreak()
@@ -303,51 +293,48 @@
   })
   abbr.list()
 
-
   // Figures
   show outline.entry.where(level: 1): it => {
     set block(above: page-grid - body-size)
     set text(font: heading-font, size: body-size)
     link(
-      it.element.location(),  // make entry linkable
+      it.element.location(), // make entry linkable
       it.indented(
-          it.prefix(),
-          it.body() + "  " +
-            box(width: 1fr, repeat([.], gap: 2pt), baseline: 30%) +
-            "  " + it.page()
-      )
+        it.prefix(),
+        it.body() + "  " + box(width: 1fr, repeat([.], gap: 2pt), baseline: 30%) + "  " + it.page(),
+      ),
     )
   }
-  
-  if(show-table-of-figures){
+
+  if (show-table-of-figures) {
     if table-of-figures-page-break {
       pagebreak()
     }
     [= #TABLE_OF_FIGURES.at(language)]
     outline(
-    title: none, 
-    target: figure.where(kind: image),
+      title: none,
+      target: figure.where(kind: image),
       indent: auto,
       depth: 3,
     )
   }
-  
-  if(show-table-of-tables){
+
+  if (show-table-of-tables) {
     if table-of-tables-page-break {
       pagebreak()
     }
     [= #TABLE_OF_TABLES.at(language)]
     outline(
-    title: none, 
-    target: figure.where(kind: table), //TODO verfiy
+      title: none,
+      target: figure.where(kind: table), //TODO verfiy
       indent: auto,
       depth: 3,
     )
   }
 
   set page(numbering: "1") // numbering for body body
-  in-frontmatter.update(false)  // end of frontmatter
-  counter(page).update(1)       // so the first chapter starts at page 1 (now in arabic numbers)
+  in-frontmatter.update(false) // end of frontmatter
+  counter(page).update(1) // so the first chapter starts at page 1 (now in arabic numbers)
 
   // ========== DOCUMENT BODY ========================================
 
@@ -364,40 +351,46 @@
   show heading.where(level: 1): it => {
     set par(leading: 0pt, justify: false)
     pagebreak()
-    context{ 
+    context {
       if in-body.get() {
-        v(page-grid * 1.5)
-        place(
-          top + right,
-          //dx: 25pt, // move further right, adjust as needed
-          dy: page-grid * 0.55,         // no vertical shift
-          text(counter(heading).display(), 
-            top-edge: "bounds",
-            size: h1-size, weight: 0, luma(43.53%),
-            font: "New Computer Modern Math" 
+        block(width: 100%)[
+          #v(page-grid * 1.5)
+          #place(
+            top + right,
+            //dx: 25pt, // move further right, adjust as needed
+            dy: page-grid * 0.55, // no vertical shift
+            text(
+              counter(heading).display(),
+              top-edge: "bounds",
+              size: h1-size,
+              weight: 0,
+              luma(43.53%),
+              font: "New Computer Modern Math",
+            ),
           )
-        )
-        text(               // heading text on separate line
-          it.body, size: h1-size,
-          top-edge: 0em, 
-          bottom-edge: 0em,
-        )
-        v(0.75 * page-grid) 
+          #text(
+            // heading text on separate line
+            it.body,
+            size: h1-size,
+            top-edge: 0em,
+            bottom-edge: 0em,
+          )
+          #v(0.75 * page-grid)
+        ]
       } else {
-        v(2 * page-grid) 
-        text(size: 2 * page-grid, counter(heading).display() + h(0.5em) + it.body)   // appendix
+        v(2 * page-grid)
+        text(size: 2 * page-grid, counter(heading).display() + h(0.5em) + it.body) // appendix
       }
     }
   }
 
-  show heading.where(level: 2): it => {v(16pt) + text(size: h2-size, it)}
-  show heading.where(level: 3): it => {v(16pt) + text(size: h3-size, it)}
-  show heading.where(level: 4): it => {v(16pt) + smallcaps(text(size: h4-size, weight: "semibold", it.body))}
+  show heading.where(level: 2): it => { v(16pt) + text(size: h2-size, it) }
+  show heading.where(level: 3): it => { v(16pt) + text(size: h3-size, it) }
+  show heading.where(level: 4): it => { v(16pt) + smallcaps(text(size: h4-size, weight: "semibold", it.body)) }
 
- // ---------- Body Text ---------------------------------------
+  // ---------- Body Text ---------------------------------------
 
   body
-
 
   // ========== APPENDIX ========================================
 
@@ -425,12 +418,12 @@
 
   // ---------- Appendix (other contents) ---------------------------------------
 
-  if (appendix != none) {       // the user has to provide heading(s)
+  if (appendix != none) {
+    // the user has to provide heading(s)
     appendix
   }
 
   // ========== LEGAL BACKMATTER ========================================
-
 
   // ---------- Confidentiality Statement ---------------------------------------
 
@@ -465,5 +458,4 @@
       date-format,
     )
   }
-
 }

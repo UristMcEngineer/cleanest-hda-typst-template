@@ -2,7 +2,7 @@
 #import "@preview/hydra:0.6.1": hydra
 #import "@preview/abbr:0.3.0"
 #import "@preview/glossarium:0.5.6": gls, glspl, make-glossary, print-glossary, register-glossary
-#import "locale.typ": APPENDIX, REFERENCES, TABLE_OF_CONTENTS
+#import "locale.typ": APPENDIX, LIST_OF_ABBREVIATIONS, REFERENCES, TABLE_OF_CONTENTS
 #import "titlepage.typ": *
 #import "info-page.typ": *
 #import "confidentiality-statement.typ": *
@@ -291,7 +291,7 @@
     set text(fill: blue.darken(val))
     key
   })
-  abbr.list()
+  abbr.list(title: LIST_OF_ABBREVIATIONS.at(language), columns: 1)
 
   // Figures
   show outline.entry.where(level: 1): it => {

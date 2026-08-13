@@ -109,9 +109,9 @@ The content of this thesis may not be made available, either in its entirety or 
   "en": "Abstract",
 )
 
-#let ACRONYMS = (
-  "de": "Abkürzungen",
-  "en": "Acronyms",
+#let LIST_OF_ABBREVIATIONS = (
+  "de": "Abkürzungsverzeichnis",
+  "en": "List of Abbreviations",
 )
 
 #let GLOSSARY = (

@@ -130,6 +130,9 @@
     set math.equation(numbering: math-numbering)
   }
 
+  // show all headings in the exported PDF's outline
+  set heading(bookmarked: true)
+
   // initialize `glossarium`
   // CAVEAT: all `figure` show rules must come before this (see `glossarium` docs)
   show: make-glossary

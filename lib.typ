@@ -53,8 +53,11 @@
   ignored-link-label-keys-for-highlighting: (),
   abbr-list-csv: "abbr.csv",
   abbr-page-break: true,
+  abbr-outlined: false,
   table-of-figures-page-break: false,
+  table-of-figures-outlined: false,
   table-of-tables-page-break: false,
+  table-of-tables-outlined: false,
   pdf-version: "v1.0.0",
   body,
 ) = {
@@ -291,7 +294,9 @@
     set text(fill: blue.darken(val))
     key
   })
+  set heading(outlined: abbr-outlined)
   abbr.list(title: LIST_OF_ABBREVIATIONS.at(language), columns: 1)
+  set heading(outlined: true)
 
   // Figures
   show outline.entry.where(level: 1): it => {
@@ -310,7 +315,7 @@
     if table-of-figures-page-break {
       pagebreak()
     }
-    [= #TABLE_OF_FIGURES.at(language)]
+    heading(outlined: table-of-figures-outlined)[#TABLE_OF_FIGURES.at(language)]
     outline(
       title: none,
       target: figure.where(kind: image),
@@ -323,7 +328,7 @@
     if table-of-tables-page-break {
       pagebreak()
     }
-    [= #TABLE_OF_TABLES.at(language)]
+    heading(outlined: table-of-tables-outlined)[#TABLE_OF_TABLES.at(language)]
     outline(
       title: none,
       target: figure.where(kind: table), //TODO verfiy

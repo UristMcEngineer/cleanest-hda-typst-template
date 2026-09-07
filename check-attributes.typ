@@ -2,6 +2,7 @@
   title,
   authors,
   language,
+  edition,
   at-university,
   confidentiality-marker,
   type-of-thesis,
@@ -179,6 +180,13 @@
 
   if (language != "en" and language != "de") {
     panic("Language is invalid. Specify 'en' for English or 'de' for German in the 'language' attribute of the template.")
+  }
+
+
+  // Check allowed editions
+
+  if (edition != "print" and edition != "digital") {
+    panic("Edition is invalid. Specify 'print' or 'digital' in the 'edition' attribute of the template.")
   }
 
 

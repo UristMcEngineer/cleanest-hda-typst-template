@@ -95,7 +95,7 @@ The content of this thesis may not be made available, either in its entirety or 
 )
 
 #let TABLE_OF_FIGURES = (
-  "de": "Bildverzeichnis",
+  "de": "Abbildungsverzeichnis",
   "en": "List of Figures",
 )
 

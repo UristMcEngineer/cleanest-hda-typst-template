@@ -20,6 +20,7 @@
   authors: (:),
   language: none,
   edition: "print",
+  two-sided: auto, // defaults to `edition == "print"` when left as `auto` (see resolution below), but stays explicitly overridable so a two-sided layout can also be combined with the digital edition.
   at-university: none,
   confidentiality-marker: (display: false),
   type-of-thesis: none,
@@ -121,22 +122,39 @@
   let lowsmallcaps-tracking = 0.08em
   let spaced-lowsmallcaps(body) = text(tracking: lowsmallcaps-tracking, smallcaps(all: true, body))
 
+  // print defaults to a two-sided layout, digital to a one-sided one, unless the caller overrides `two-sided` explicitly.
+  let resolved-two-sided = if two-sided == auto { edition == "print" } else { two-sided }
+
   // Latex Values based from @AI analysis
   let classic-text-width = 370pt
   let classic-layout-height = 750pt
   let base-side-margin = (210mm - classic-text-width) / 2
-  let page-margin = (
-    top: 2.5cm,
-    bottom: 3cm,
-    left: base-side-margin + 2.5mm, // BCOR = 5mm => shift by half to the inner side
-    right: base-side-margin - 2.5mm,
-  )
+  // BCOR = 5mm => shift by half towards the binding (inside) edge.
+  //
+  // One-sided layouts keep this as a fixed left/right pair (always the inside-on-the-left case, i.e. a right-hand/recto page); two-sided layouts use Typst's native `inside`/`outside` keys instead, which mirror automatically per page parity via `set page(binding: ...)` below.
+  let page-margin = if resolved-two-sided {
+    (
+      top: 2.5cm,
+      bottom: 3cm,
+      inside: base-side-margin + 2.5mm,
+      outside: base-side-margin - 2.5mm,
+    )
+  } else {
+    (
+      top: 2.5cm,
+      bottom: 3cm,
+      left: base-side-margin + 2.5mm,
+      right: base-side-margin - 2.5mm,
+    )
+  }
 
   // ---------- Basic Document Settings ---------------------------------------
 
   set document(title: title, author: authors.map(author => author.name))
   let in-frontmatter = state("in-frontmatter", true) // to control page number format in frontmatter
   let in-body = state("in-body", true) // to control heading formatting in/outside of body
+  // set right before a two-sided chapter start's `pagebreak(to: "odd")` whenever that break lands on a blank inserted left page, so the header can suppress itself there too (LaTeX's `cleardoublepage=empty`); cleared again immediately after, so it only ever marks that one page.
+  let is-padding-page = state("is-padding-page", false)
 
   // customize look of figure
   set figure.caption(separator: [ --- ], position: bottom)
@@ -250,40 +268,57 @@
   set page(
     paper: "a4",
     margin: page-margin,
+    // right/odd pages are the "first" page of a spread, matching LaTeX's `openright` (`thesis.tex:35`) and the chapter-start-on-odd-page behavior below.
+    binding: if resolved-two-sided { right } else { auto },
     header: context {
-      // pages opening with a level-1 heading (chapters, but also the ToC/list-of-*
-      // and bibliography/glossary titles, which are level-1 headings too) get no
-      // running header and thus no page number, matching the hda-latex template's
-      // `plain` chapter-opening page style.
+      // pages opening with a level-1 heading (chapters, but also the ToC/list-of-* and bibliography/glossary titles, which are level-1 headings too) get no running header and thus no page number, matching the hda-latex template's `plain` chapter-opening page style.
+      //
+      // A two-sided layout's blank inserted left page (see `is-padding-page` above) is suppressed the same way.
       let starts-with-h1 = query(heading.where(level: 1)).any(h => h.location().page() == here().page())
-      if not starts-with-h1 {
+      if not starts-with-h1 and not is-padding-page.get() {
+        // two-sided layouts show only the chapter (level 1) on left/even pages, matching classicthesis's `\leftmark`; right/odd pages (and the one-sided layout) keep the level-≤2 running head.
+        //
+        // `\lehead`/`\rohead` (classicthesis.sty:381-382) additionally swap the reading order and align the heading text to each page's outer edge (right on right/odd pages, left on left/even pages), with the page number further out still, in the margin — reproduced below via `align()` on `running-head` and mirroring `place()`'s side for `page-number`. `\rohead` is also what KOMA falls back to for every page in one-sided mode, so the right-aligned case applies whenever `is-left-page` is false, not just on two-sided right pages.
+        let is-left-page = resolved-two-sided and calc.even(here().page())
+        let running-head = spaced-lowsmallcaps(text(font: heading-font, size: body-size, context {
+          hydra(
+            // `hydra`'s `selectors.by-level(max: 2)` isn't re-exported by the package's entrypoint, so its `max`-level selector shape is replicated here directly to cap the running header at level 2 (chapter or section) on right pages, or level 1 only on left pages.
+            (
+              primary: (target: heading, filter: (ctx, e) => e.level <= (if is-left-page { 1 } else { 2 })),
+              ancestors: none,
+            ),
+            // prefer the first heading that starts on this page over the last one, matching classicthesis's automark (`\rightmark`/`\leftmark`: the first section/chapter starting on the page, or else the previously active one) instead of always whichever heading is last on the page.
+            prev-filter: (ctx, candidates) => candidates.primary.next == none,
+            skip-starting: false,
+            // classicthesis's `\chaptermark` (classicthesis.sty:379) carries only the chapter title, no numeral — unlike `\sectionmark` (:380), which prepends `\thesection` — so a chapter shown here (either as a left page's own level-1 head, or as a right page's fallback before that chapter's first section) must drop its numeral while a section keeps its. `hydra`'s own default `display` always prepends numbering and isn't reachable directly (`core.display` isn't re-exported by the package's entrypoint either), so its numbering behaviour is replicated here for level ≥ 2 only.
+            display: (ctx, candidate) => if candidate.level == 1 {
+              candidate.body
+            } else if candidate.numbering != none {
+              numbering(candidate.numbering, ..counter(heading).at(candidate.location())) + [ ] + candidate.body
+            } else {
+              candidate.body
+            },
+          )
+        }))
+        let page-number = text(font: heading-font, size: body-size, context {
+          if in-frontmatter.get() {
+            counter(page).display("i") // roman page numbers for the frontmatter
+          } else {
+            counter(page).display("1") // arabic page numbers for the rest of the document
+          }
+        })
         block(width: 100%)[
           // old-style figures blend with the small-caps title/roman-esque page number here,
           // matching classicthesis's running-header look; the body text and the large margin
           // chapter numeral deliberately keep lining figures (`set text` default) instead.
           #set text(number-type: "old-style")
-          #spaced-lowsmallcaps(text(font: heading-font, size: body-size, context {
-            hydra(
-              // `hydra`'s `selectors.by-level(max: 2)` isn't re-exported by the package's
-              // entrypoint, so its `max`-level selector shape is replicated here directly
-              // to cap the running header at level 2 (chapter or section, never deeper).
-              // `display: auto` (hydra's default) prepends the heading's own numbering.
-              (primary: (target: heading, filter: (ctx, e) => e.level <= 2), ancestors: none),
-              use-last: true,
-              skip-starting: false,
-            )
-          }))
-          #place(
-            top + left,
-            dx: 100% + 1.5em, // hangs in the margin, outside the text column, like the chapter numeral below
-            text(font: heading-font, size: body-size, context {
-              if in-frontmatter.get() {
-                counter(page).display("i") // roman page numbers for the frontmatter
-              } else {
-                counter(page).display("1") // arabic page numbers for the rest of the document
-              }
-            }),
-          )
+          #if is-left-page [
+            #place(top + right, dx: -(100% + 1.5em), page-number)
+            #align(left, running-head)
+          ] else [
+            #align(right, running-head)
+            #place(top + left, dx: 100% + 1.5em, page-number)
+          ]
           #v(0.5em)
           #line(length: 100%, stroke: 0.5pt)
         ]
@@ -455,7 +490,12 @@
 
   show heading.where(level: 1): it => {
     set par(leading: 0pt, justify: false)
-    pagebreak()
+    // two-sided layouts start every chapter on a right-hand/recto page (LaTeX's `cleardoublepage=empty`, `thesis.tex:36`), inserting a blank left page where needed; `is-padding-page` marks that inserted page (if any) so the header can suppress itself there too.
+    //
+    // Landing on the chapter's own page also sees this still set to the pre-break value, but that page's header is already independently suppressed via `starts-with-h1` below.
+    context is-padding-page.update(resolved-two-sided and calc.odd(here().page()))
+    pagebreak(to: if resolved-two-sided { "odd" } else { none })
+    is-padding-page.update(false)
     // floatperchapter resets figure/table numbering at every chapter (including the appendix),
     // analogous to classicthesis.sty:668-684's separate \c@figure/\c@table resets.
     counter(figure.where(kind: image)).update(0)
@@ -466,6 +506,7 @@
         block(width: 100%)[
           #v(page-grid * 1.5)
           #place(
+            // stays unconditionally right/outer: two-sided layouts already force every chapter opening onto an odd/right-hand page above (`pagebreak(to: "odd")`), so this never needs to mirror to the left the way the running header's page number does.
             top + left,
             dx: 100% + 1.5em, // hangs in the margin, outside the text column, clear of the title
             text(

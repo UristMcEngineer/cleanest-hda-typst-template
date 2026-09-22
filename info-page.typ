@@ -68,11 +68,9 @@
     bottom + left,
     {
       for author in authors {
-        text(size: 11pt, [#author.name: #title, © #date.display(date-format)])
+        text(size: 11pt, [#author.name: #text(style: "italic",title), © #date.display(date-format)])
         linebreak()
       }
-      v(1em)
-      text(size: 9pt, fill: luma(100), [Version: #pdf-version])
     }
   )
 }

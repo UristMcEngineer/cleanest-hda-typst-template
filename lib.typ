@@ -55,11 +55,15 @@
   ignored-link-label-keys-for-highlighting: (),
   abbr-list-csv: "abbr.csv",
   abbr-page-break: true,
-  abbr-outlined: false,
+  // Whether these headings themselves count as level-1 entries in the main Inhaltsverzeichnis,
+  // alongside the chapters. `true` so a reader browsing the Inhaltsverzeichnis can jump straight
+  // to any of the other lists, matching how the chapters and the bibliography/glossary already
+  // show up there.
+  abbr-outlined: true,
   table-of-figures-page-break: true,
-  table-of-figures-outlined: false,
+  table-of-figures-outlined: true,
   table-of-tables-page-break: true,
-  table-of-tables-outlined: false,
+  table-of-tables-outlined: true,
   figure-short-captions: (:),
   pdf-version: "v1.0.0",
   body,
@@ -121,6 +125,44 @@
   // `\spacedallcaps`, `\textls[160]{...}`) — that one is untouched.
   let lowsmallcaps-tracking = 0.08em
   let spaced-lowsmallcaps(body) = text(tracking: lowsmallcaps-tracking, smallcaps(all: true, body))
+
+  // Renders one outline entry (ToC/list-of-figures/list-of-tables) as prefix + dot-leader
+  // title + page number. The title and its dot leader sit in a `1fr` grid column, with the
+  // page number in its own fixed-width column, instead of all three appended inline in one
+  // paragraph. Appending them inline lets a title's last line run all the way to the margin,
+  // so a title that happens to fill almost the full line leaves no room for even the dot
+  // leader's minimum width, let alone the number, and both get pushed onto an orphaned line
+  // of their own below the title. Reserving the number column's width up front instead forces
+  // the title to wrap a word earlier whenever it would otherwise leave too little room, and
+  // keeps the number from ever moving independently of its row. The gutter is wider than a
+  // bare `auto`-sized number column would need on its own, so the number sits with a bit of
+  // breathing room instead of butting up against the dot leader — a fixed column width wide
+  // enough for that was tried and rejected: it starved the title column enough that, on an
+  // entry whose title wraps to two lines, even the dot leader's own minimum width no longer
+  // fit next to the title's last word, orphaning the leader onto a third line by itself.
+  // `bottom`-aligning the number column matches it to the title's last line when the title
+  // wraps across more than one line. The dot leader box takes its height from the surrounding
+  // text instead of a fixed `height`/`baseline` override (needed by the old single-paragraph
+  // layout to stop a fully-empty leader from collapsing the line, but not by this one): with
+  // the leader now sized to a whole grid row instead of a run of inline text, that override
+  // instead corrupted the row's own height/baseline whenever the leader shrank close to zero
+  // width, making the page number float above the text baseline on tightly-fitted entries.
+  // `leader: false` drops the dot leader (used for level-1/chapter entries, which read as
+  // headings in their own right rather than as a lookup table), leaving just the flexible gap
+  // between title and page number.
+  let outline-entry-line(it, entry-body, leader: true) = link(
+    it.element.location(),
+    grid(
+      columns: (1fr, auto),
+      column-gutter: 1em,
+      align: (left, bottom),
+      it.indented(
+        it.prefix(),
+        entry-body + "  " + if leader { box(width: 1fr, repeat([.], gap: 4pt)) } else { box(width: 1fr) },
+      ),
+      it.page(),
+    ),
+  )
 
   // print defaults to a two-sided layout, digital to a one-sided one, unless the caller overrides `two-sided` explicitly.
   let resolved-two-sided = if two-sided == auto { edition == "print" } else { two-sided }
@@ -332,6 +374,11 @@
   // ---------- INFO PAGE with Confidentiality Statement------------
 
   if (show-info-page) {
+    // the print edition's own copyright page (see `info-page.typ`) carries no heading, so it
+    // reuses this same suppression flag to stay bare, matching the two-sided padding-page case above.
+    if (edition == "print") {
+      is-padding-page.update(true)
+    }
     pagebreak()
     info-page(
       authors,
@@ -349,6 +396,7 @@
       language,
       many-authors,
       page-margin,
+      edition,
     )
   }
 
@@ -363,36 +411,20 @@
   // ---------- ToC (Outline) ---------------------------------------
   set page(numbering: "i", footer: none) // numbering for List fo Abbreviations and other entries before body
 
-  // top-level TOC entries in small caps, with the same dot leader as the other levels
+  // top-level TOC entries in small caps, without a dot leader: these read as headings/chapter
+  // titles in their own right rather than as a lookup table, so classicthesis (and this
+  // template, following it) sets them off from the page number with plain space instead.
   show outline.entry.where(level: 1): it => {
-    set block(above: 0pt, below: 0pt)
+    set block(above: 0.5em, below: 0pt)
     set text(font: heading-font, size: body-size, number-type: "old-style")
-    link(
-      it.element.location(), // make entry linkable
-      // dot leader (not just a bare `1fr` box) and explicit box height matter here: on a
-      // line whose filler renders no visible glyphs — no leader, or a wrapped entry whose
-      // page number lands alone on the last line — Typst computes a shorter line box than
-      // for ordinary text, which silently eats into the gap before the following entry.
-      it.indented(
-        it.prefix(),
-        spaced-lowsmallcaps(it.body())
-          + box(width: 1fr, height: 1em, repeat([.], gap: 2pt), baseline: 30%)
-          + it.page(),
-      ),
-    )
+    outline-entry-line(it, spaced-lowsmallcaps(it.body()), leader: false)
   }
 
   // other TOC entries in regular with adapted filling
   show outline.entry.where(level: 2).or(outline.entry.where(level: 3)): it => {
-    set block(above: 0pt, below: 0pt)
+    set block(above: 0.5em, below: 0pt)
     set text(font: heading-font, size: body-size, number-type: "old-style")
-    link(
-      it.element.location(), // make entry linkable
-      it.indented(
-        it.prefix(),
-        it.body() + "  " + box(width: 1fr, height: 1em, repeat([.], gap: 2pt), baseline: 30%) + "  " + it.page(),
-      ),
-    )
+    outline-entry-line(it, it.body())
   }
   if (show-table-of-contents) {
     outline(
@@ -424,7 +456,7 @@
 
   // Figures
   show outline.entry.where(level: 1): it => {
-    set block(above: 0pt, below: 0pt)
+    set block(above: 0.5em, below: 0pt)
     set text(font: heading-font, size: body-size, number-type: "old-style")
     // figures and tables (both wrapped in Typst's `figure()`) may provide a
     // `figure-short-captions` entry (keyed by their label) so the list of figures/tables
@@ -437,13 +469,7 @@
     } else {
       it.body()
     }
-    link(
-      it.element.location(), // make entry linkable
-      it.indented(
-        it.prefix(),
-        entry-body + "  " + box(width: 1fr, height: 1em, repeat([.], gap: 2pt), baseline: 30%) + "  " + it.page(),
-      ),
-    )
+    outline-entry-line(it, entry-body)
   }
 
   if (show-table-of-figures) {
@@ -623,6 +649,7 @@
       at-university,
       university-location,
       date-format,
+      edition,
     )
   }
 }

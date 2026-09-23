@@ -17,6 +17,7 @@
   language,
   many-authors,
   page-margin,
+  edition,
 ) = {
 
   // ---------- Page Setup ---------------------------------------
@@ -24,6 +25,23 @@
   set page(
     margin: page-margin,
   )
+
+  let copyright-notice = {
+    for author in authors {
+      text(size: 11pt, [#author.name: #text(style: "italic",title), © #date.display(date-format)])
+      linebreak()
+    }
+  }
+
+  // In print, the declaration/confidentiality page gets hand-signed, so the copyright
+  // line moves to its own page ahead of it instead of sharing that page's bottom margin.
+  // That page carries no heading of its own, so it reuses the running header's existing
+  // suppression flag (also used for two-sided layouts' blank inserted pages) to stay bare.
+  if (edition == "print") {
+    place(bottom + left, copyright-notice)
+    pagebreak()
+    state("is-padding-page", false).update(false)
+  }
 
   if (show-declaration-of-authorship-at-beginning) {
 
@@ -37,11 +55,12 @@
       at-university,
       university-location,
       date-format,
+      edition,
     )
   }
 
   if (show-confidentiality-statement-at-beginning) {
-    
+
     if (show-declaration-of-authorship-at-beginning) {
       pagebreak()
     }
@@ -59,18 +78,9 @@
   )
   }
 
-
-
-
   // ---------- Info at Bottom of Page ---------------------------------------
 
-  place(
-    bottom + left,
-    {
-      for author in authors {
-        text(size: 11pt, [#author.name: #text(style: "italic",title), © #date.display(date-format)])
-        linebreak()
-      }
-    }
-  )
+  if (edition != "print") {
+    place(bottom + left, copyright-notice)
+  }
 }

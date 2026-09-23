@@ -10,6 +10,7 @@
   at-university,
   city,
   date-format,
+  edition,
 ) = {
   set par(first-line-indent: 0em)
 
@@ -32,13 +33,21 @@
     date.at(1)
   }
 
-  v(2em)
-  if (at-university) {
-    text(style: "italic", city + [, ] + end-date.display(date-format))
+  let location-date = if (at-university) {
+    city + [, ] + end-date.display(date-format)
   } else {
     let authors-by-city = authors.map(author => author.company.city).dedup()
 
-    text(style: "italic", authors-by-city.join(", ", last: AND.at(language)) + [ ] + end-date.display(date-format))
+    authors-by-city.join(", ", last: AND.at(language)) + [ ] + end-date.display(date-format)
+  }
+
+  v(2em)
+  // The print edition is hand-signed and hand-dated after printing, so place/date stay
+  // blank there rather than pre-filled — `hide` keeps the line's layout space reserved.
+  if (edition == "print") {
+    hide(text(style: "italic", location-date))
+  } else {
+    text(style: "italic", location-date)
   }
 
   v(1em)
@@ -46,31 +55,33 @@
     grid(
       columns: (1fr, 1fr),
       gutter: 20pt,
-      ..authors.map(author => {
-        rect(
-          width: 80%,
+      ..authors.map(author => align(center, block(width: 80%)[
+        #rect(
+          width: 100%,
           height: 3.5em,
           inset: 1pt,
           stroke: (top: none, y: none, bottom: black),
-          if author.keys().contains("signature") {
+          if edition != "print" and author.keys().contains("signature") {
             box(author.signature)
           },
         )
-        author.name
-      })
+        #align(center, author.name)
+      ]))
     )
   } else {
     for author in authors {
-      rect(
-        width: 40%,
-        height: 4em,
-        inset: 1pt,
-        stroke: (top: none, y: none, bottom: black),
-        if author.keys().contains("signature") {
-          box(author.signature)
-        },
-      )
-      author.name
+      align(right, block(width: 40%)[
+        #rect(
+          width: 100%,
+          height: 4em,
+          inset: 1pt,
+          stroke: (top: none, y: none, bottom: black),
+          if edition != "print" and author.keys().contains("signature") {
+            box(author.signature)
+          },
+        )
+        #align(center, author.name)
+      ])
     }
   }
 }

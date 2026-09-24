@@ -94,12 +94,12 @@ The content of this thesis may not be made available, either in its entirety or 
   "en": "Table of Contents",
 )
 
-#let TABLE_OF_FIGURES = (
+#let LIST_OF_FIGURES = (
   "de": "Abbildungsverzeichnis",
   "en": "List of Figures",
 )
 
-#let TABLE_OF_TABLES = (
+#let LIST_OF_TABLES = (
   "de": "Tabellenverzeichnis",
   "en": "List of Tables",
 )
@@ -114,9 +114,9 @@ The content of this thesis may not be made available, either in its entirety or 
   "en": "List of Abbreviations",
 )
 
-#let GLOSSARY = (
-  "de": "Glossar",
-  "en": "Glossary",
+#let INDEX = (
+  "de": "Stichwortverzeichnis",
+  "en": "Index",
 )
 
 #let REFERENCES = (

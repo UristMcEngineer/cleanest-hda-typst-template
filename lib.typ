@@ -236,9 +236,15 @@
   let internal-link-color = if edition == "digital" { rgb("#1068c0") } else { luma(0) } // dvipsnames' RoyalBlue, sampled from latex/thesis.pdf
   let citation-color = if edition == "digital" { rgb(0%, 50%, 0%) } else { luma(0) } // classicthesis.sty:150's webgreen, rgb{0,.5,0}
   let url-color = if edition == "digital" { rgb(60%, 0%, 0%) } else { luma(0) } // classicthesis.sty:150's webbrown, rgb{.6,0,0}
-  show ref: set text(fill: internal-link-color)
+  // Abkürzungen und Glossareinträge bleiben auch in der digitalen Ausgabe schwarz.
+  let abbr-keys = csv(abbr-list-csv).map(row => row.first().trim())
+  let glossary-keys = if glossary != none { glossary.map(entry => entry.key) } else { () }
+  show ref: it => text(
+    fill: if str(it.target) in glossary-keys or str(it.target).split(":").first() in abbr-keys { luma(0) } else { internal-link-color },
+    it,
+  )
+  show link: it => text(fill: if type(it.dest) == str { url-color } else if type(it.dest) == label and str(it.dest) in glossary-keys { luma(0) } else { internal-link-color }, it)
   show cite: set text(fill: citation-color)
-  show link: it => text(fill: if type(it.dest) == str { url-color } else { internal-link-color }, it)
 
   // ========== TITLEPAGE ========================================
 
@@ -442,12 +448,8 @@
   show: abbr.show-rule
   abbr.load(abbr-list-csv)
   abbr.config(style: key => {
-    // same scoping constraint as the colorlinks block above: `set` must stay unconditional so it
-    // reaches the trailing `key`, so the color itself (not the `set` call) is what collapses to
-    // black in the print edition.
-    let val = if text.weight <= "medium" { 15% } else { 30% }
-    let abbr-color = if edition == "digital" { blue.darken(val) } else { luma(0) }
-    set text(fill: abbr-color)
+    // `set` must stay unconditional so it reaches the trailing `key`.
+    set text(fill: luma(0))
     key
   })
   set heading(outlined: abbr-outlined)
@@ -476,7 +478,7 @@
     if table-of-figures-page-break {
       pagebreak()
     }
-    heading(outlined: table-of-figures-outlined)[#TABLE_OF_FIGURES.at(language)]
+    heading(outlined: table-of-figures-outlined)[#LIST_OF_FIGURES.at(language)]
     outline(
       title: none,
       target: figure.where(kind: image),
@@ -489,7 +491,7 @@
     if table-of-tables-page-break {
       pagebreak()
     }
-    heading(outlined: table-of-tables-outlined)[#TABLE_OF_TABLES.at(language)]
+    heading(outlined: table-of-tables-outlined)[#LIST_OF_TABLES.at(language)]
     outline(
       title: none,
       target: figure.where(kind: table), //TODO verfiy
@@ -612,7 +614,7 @@
   // ---------- Glossary  ---------------------------------------
 
   if (glossary != none) {
-    heading(level: 1, GLOSSARY.at(language))
+    heading(level: 1, INDEX.at(language))
     print-glossary(glossary)
   }
 

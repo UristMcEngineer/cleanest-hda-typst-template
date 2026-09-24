@@ -1,21 +1,16 @@
-#let TITLEPAGE_SECTION_B = (
-  "de": "Studiengang ",
-  "en": "Course of Studies ",
-)
-
-#let TITLEPAGE_DATE = (
-  "de": "Eingereicht am:",
-  "en": "Submitted on:",
-)
-
 #let TITLEPAGE_STUDENT_ID = (
   "de": "Matrikelnummer:",
   "en": "Student ID:",
 )
 
-#let TITLEPAGE_STUDENT_ID = (
-  "de": "Matrikelnummer:",
-  "en": "Student ID:",
+#let TITLEPAGE_SUBMITTED_BY = (
+  "de": "vorgelegt von",
+  "en": "submitted by",
+)
+
+#let TITLEPAGE_COMPANY = (
+  "de": "Unternehmen",
+  "en": "Company",
 )
 
 #let TITLEPAGE_SUPERVISOR_REF = (

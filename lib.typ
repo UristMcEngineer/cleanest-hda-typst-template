@@ -41,6 +41,7 @@
   university: none,
   university-location: none,
   university-short: none,
+  faculty: none,
   city: none,
   supervisor: (:),
   date: none,
@@ -190,6 +191,13 @@
     )
   }
 
+  // The title page does not inherit the body's page margins. Its text block is 19mm wider (the LaTeX template's `\changetext{}{19mm}{}{19mm}{}`) and, unlike the body block, sits centered on the physical page rather than shifted towards the binding edge, so the widening is split evenly across both sides. Top and bottom follow the LaTeX title page's own text area, which starts higher and ends higher than the body's.
+  let titlepage-margin = (
+    top: 2.4cm,
+    bottom: 4.2cm,
+    x: base-side-margin - 9.5mm,
+  )
+
   // ---------- Basic Document Settings ---------------------------------------
 
   set document(title: title, author: authors.map(author => author.name))
@@ -253,7 +261,6 @@
   } else {
     titlepage(
       authors,
-      date,
       heading-font,
       language,
       logo-left,
@@ -264,14 +271,12 @@
       subtitle,
       type-of-thesis,
       university,
-      university-location,
+      faculty,
       at-university,
-      date-format,
       show-confidentiality-statement,
       confidentiality-marker,
-      university-short,
-      page-grid,
-      page-margin,
+      body-size,
+      titlepage-margin,
     )
   }
   counter(page).update(1)
@@ -563,8 +568,8 @@
           #v(0.35 * page-grid)
         ]
       } else {
-        v(2 * page-grid)
-        text(size: 2 * page-grid, counter(heading).display() + h(0.5em) + it.body) // appendix
+        // a block, so that the first paragraph after the heading is not indented
+        block(above: 2 * page-grid, below: page-grid, text(size: 2 * page-grid, counter(heading).display() + h(0.5em) + it.body)) // appendix
       }
     }
   }

@@ -1,8 +1,18 @@
 #import "locale.typ": *
 
+// KOMA's `\Large`, `\LARGE` and `\huge` steps at an 11pt base document class. Those steps are table-driven rather than a fixed fraction of the base size, so they are spelled out instead of being scaled from `body-size`.
+#let SIZE-LARGE = 14.4pt
+#let SIZE-XLARGE = 17.28pt
+#let SIZE-HUGE = 20.74pt
+
+// Vertical gaps inside the title page's blocks: between the university and its faculty, between a title and its subtitle, between the "for the degree of" phrase and the degree itself, and between the "submitted by" phrase, the author name(s) and the student id. See the note on `v()` in `titlepage` for why these are not the LaTeX template's `\vspace` arguments verbatim.
+#let FACULTY-GAP = 0.8cm
+#let SUBTITLE-GAP = 0.65cm
+#let DEGREE-GAP = 0.65cm
+#let AUTHOR-GAP = 0.6cm
+
 #let titlepage(
   authors,
-  date,
   title-font,
   language,
   logo-left,
@@ -13,79 +23,70 @@
   subtitle,
   type-of-thesis,
   university,
-  university-location,
+  faculty,
   at-university,
-  date-format,
   show-confidentiality-statement,
   confidentiality-marker,
-  university-short,
-  page-grid,
-  page-margin,
+  body-size,
+  titlepage-margin,
 ) = {
 
   // ---------- Page Setup ---------------------------------------
 
-  set page(     
-    // identical to document
-    margin: page-margin,
-  )
+  // The title page carries its own margins instead of the body's: its text block is wider and sits centered on the physical page, where the body block is narrower and shifted towards the binding edge. `titlepage-margin` is computed alongside `page-margin` in `lib.typ`.
+  set page(margin: titlepage-margin)
   // The whole page in `title-font`, all elements centered
-  set text(font: title-font, size: page-grid)
+  set text(font: title-font, size: body-size)
+  // Every vertical gap on this page is an explicit `v()`, so the implicit spacing Typst puts between paragraphs and blocks -- which scales with the surrounding font size and would add itself on top of those values -- is switched off.
+  //
+  // The gap constants above are chosen to reproduce the gaps the LaTeX template produces, not copied from its `\vspace` arguments: LaTeX advances to the next line by a full baselineskip before adding its `\vspace`, where stacked Typst blocks advance only by the line's own height.
+  set par(justify: false, spacing: 0pt)
+  set block(spacing: 0pt)
   set align(center)
 
   // ---------- Logo(s) ---------------------------------------
+  //
+  // A single logo spans the full width of the title page's text block; a left/right pair splits that width between them, each keeping its own aspect ratio.
 
-  if logo-left != none and logo-right == none {           // one logo: centered
-    place(                                
-      top + center,
-      dy: -3 * page-grid,
-      box(logo-left, height: 8 * page-grid) 
+  if logo-left != none and logo-right == none {
+    block(width: 100%, logo-left)
+  } else if logo-left != none and logo-right != none {
+    grid(
+      columns: (1fr, 1fr),
+      column-gutter: 1em,
+      align: (left + horizon, right + horizon),
+      logo-left,
+      logo-right,
     )
-  } else if logo-left != none and logo-right != none {    // two logos: left & right
-    place(
-      top + left,
-      dy: -4 * page-grid,
-      box(logo-left, height: 3 * page-grid) 
-    )
-    place(
-      top + right,
-      dy: -4 * page-grid,
-      box(logo-right, height: 3 * page-grid) 
-    )
+  }
+
+  // ---------- University / Faculty ---------------------------------------
+
+  v(1fr)
+
+  text(weight: "bold", size: SIZE-HUGE, university)
+  if faculty != none and faculty != "" {
+    v(FACULTY-GAP)
+    text(size: SIZE-XLARGE, [-- #faculty --])
   }
 
   // ---------- Title ---------------------------------------
 
-  v(7 * page-grid)     
-  text(weight: "bold", fill: luma(0), size: 1.5 * page-grid, title)
-  v(0.25 * page-grid)
-  if subtitle != none {
-    text(fill: luma(80), size: page-grid, subtitle)
-  }
-  v(page-grid)
+  v(2fr)
 
-  
+  text(weight: "bold", fill: luma(0), size: SIZE-XLARGE, title)
+  if subtitle != none {
+    v(SUBTITLE-GAP)
+    text(fill: luma(80), size: SIZE-LARGE, subtitle)
+  }
+
   // ---------- Confidentiality Marker (optional) ---------------------------------------
 
   if (confidentiality-marker.display) {
     let size = 7em
-    let display = false
-    let title-spacing = 2em
     let x-offset = 0pt
+    let y-offset = if (many-authors) { 7pt } else { 0pt }
 
-    let y-offset = if (many-authors) {
-      7pt
-    } else {
-      0pt
-    }
-
-    if (type-of-degree == none and type-of-thesis == none) {
-      title-spacing = 0em
-    }
-
-    if ("display" in confidentiality-marker) {
-      display = confidentiality-marker.display
-    }
     if ("offset-x" in confidentiality-marker) {
       x-offset = confidentiality-marker.offset-x
     }
@@ -95,17 +96,8 @@
     if ("size" in confidentiality-marker) {
       size = confidentiality-marker.size
     }
-    if ("title-spacing" in confidentiality-marker) {
-      confidentiality-marker.title-spacing
-    }
 
-    v(title-spacing)
-
-    let color = if (show-confidentiality-statement) {
-      red
-    } else {
-      green.darken(5%)
-    }
+    let color = if (show-confidentiality-statement) { red } else { green.darken(5%) }
 
     place(
       right,
@@ -115,147 +107,97 @@
     )
   }
 
-  // ---------- Sub-Title-Infos ---------------------------------------
-  // 
-  // type of thesis (optional)
+  // ---------- Type of Thesis / Degree ---------------------------------------
+
+  v(2fr)
+
   if (type-of-thesis != none and type-of-thesis.len() > 0) {
-    align(center, text(size: page-grid, type-of-thesis))
-    v(0.25 * page-grid)
+    // A line break in `type-of-thesis` separates the "for the degree of" phrase from the degree itself, which the LaTeX template sets apart by a `\vspace` rather than by leading alone.
+    set text(size: SIZE-LARGE)
+    stack(
+      dir: ttb,
+      spacing: DEGREE-GAP,
+      ..if type(type-of-thesis) == str { type-of-thesis.split("\n") } else { (type-of-thesis,) },
+    )
   }
-
-  // course of studies
-  text(TITLEPAGE_SECTION_B.at(language) + authors.map(author => author.course-of-studies).dedup().join(" | "),)
-  v(0.25 * page-grid)
-
-  // university
-  text(university + [ ] + university-location)
-
 
   // ---------- Author(s) ---------------------------------------
 
-  place(
-    bottom + center,
-    dy: -10 * page-grid,
-    grid(
-      columns: 100%,
-      gutter: if (many-authors) {
-        14pt
-      } else {
-        1.25 * page-grid
-      },
-      ..authors.map(author => align(
-        center,
-        {
-          text(author.name)
-        },
-      ))
-    )
+  v(1fr)
+
+  text(size: SIZE-LARGE, TITLEPAGE_SUBMITTED_BY.at(language))
+  v(AUTHOR-GAP)
+  stack(
+    dir: ttb,
+    spacing: AUTHOR-GAP,
+    ..authors.map(author => text(weight: "bold", size: SIZE-LARGE, author.name)),
+  )
+  v(AUTHOR-GAP)
+  text(
+    TITLEPAGE_STUDENT_ID.at(language)
+      + " "
+      + authors.map(author => str(author.student-id)).join(", "),
   )
 
   // ---------- Info-Block ---------------------------------------
+  //
+  // `label : value` rows in a three-column grid, with the colons aligned in a column of their own the way the LaTeX template's `tabular{lll}` sets them. Only the referees appear here; the submission date belongs to the copyright notice and the declaration of authorship, which both carry it already.
 
-  set text(size: 11pt)
-  place(
-    bottom + center,
-    grid(
-      columns: (auto, auto),
-      row-gutter: 1em,
-      column-gutter: 1em,
-      align: (right, left),
+  v(2fr)
 
-      // submission date
-      text(weight: "bold", fill: luma(80), TITLEPAGE_DATE.at(language)),
-      text(
-        if (type(date) == datetime) {
-          date.display(date-format)
-        } else {
-          date.at(0).display(date-format) + [ -- ] + date.at(1).display(date-format)
-        },
-      ),
+  let info-row(label, value) = (text(label), text(":"), text(value))
 
-      // students
-      align(text(weight: "bold", fill: luma(80), TITLEPAGE_STUDENT_ID.at(language)), top),
-      stack(
-        dir: ttb,
-        for author in authors {
-          text([#author.student-id])
-          linebreak()
-        }
-      ),
+  grid(
+    columns: (auto, auto, auto),
+    row-gutter: 0.9em,
+    column-gutter: 0.75em,
+    align: (right, center, left),
 
-      // company
-      ..if (not at-university) { 
-        (align(text(weight: "bold", fill: luma(80), TITLEPAGE_COMPANY.at(language)), top),
-         stack(
-          dir: ttb,
-          for author in authors {
+    // company
+    ..if (not at-university) {
+      info-row(
+        TITLEPAGE_COMPANY.at(language),
+        authors
+          .map(author => {
             let company-address = ""
 
             // company name
-            if (
-              "name" in author.company and
-              author.company.name != none and
-              author.company.name != ""
-              ) {
-              company-address+= author.company.name
+            if ("name" in author.company and author.company.name != none and author.company.name != "") {
+              company-address += author.company.name
             } else {
               panic("Author '" + author.name + "' is missing a company name. Add the 'name' attribute to the company object.")
             }
 
             // company address (optional)
-            if (
-              "post-code" in author.company and
-              author.company.post-code != none and
-              author.company.post-code != ""
-              ) {
-              company-address+= text([, #author.company.post-code])
+            if ("post-code" in author.company and author.company.post-code != none and author.company.post-code != "") {
+              company-address += ", " + author.company.post-code
             }
 
             // company city
-            if (
-              "city" in author.company and
-              author.company.city != none and
-              author.company.city != ""
-              ) {
-              company-address+= text([, #author.company.city])
+            if ("city" in author.company and author.company.city != none and author.company.city != "") {
+              company-address += ", " + author.company.city
             } else {
               panic("Author '" + author.name + "' is missing the city of the company. Add the 'city' attribute to the company object.")
             }
 
             // company country (optional)
-            if (
-              "country" in author.company and
-              author.company.country != none and
-              author.company.country != ""
-            ) {
-              company-address+= text([, #author.company.country])
+            if ("country" in author.company and author.company.country != none and author.company.country != "") {
+              company-address += ", " + author.company.country
             }
 
             company-address
-            linebreak()
-          }
-        )
-       )
-      },
-      // university supervisor
-      ..if ("ref" in supervisor) {
-        (
-          text(
-            weight: "bold", fill: luma(80), 
-            TITLEPAGE_SUPERVISOR_REF.at(language) + [:]
-          ),
-          if (type(supervisor.ref) == str) {text(supervisor.ref)}
-        )
-      },
-      ..if ("co-ref" in supervisor) {
-        (
-          text(
-            weight: "bold", fill: luma(80),
-            TITLEPAGE_SUPERVISOR_COREF.at(language) + [:]
-          ),
-          if (type(supervisor.co-ref) == str) {text(supervisor.co-ref)}
-        )
-        },
-    )
+          })
+          .dedup()
+          .join(" | "),
+      )
+    } else { () },
+
+    // university supervisor
+    ..if ("ref" in supervisor and type(supervisor.ref) == str) {
+      info-row(TITLEPAGE_SUPERVISOR_REF.at(language), supervisor.ref)
+    } else { () },
+    ..if ("co-ref" in supervisor and type(supervisor.co-ref) == str) {
+      info-row(TITLEPAGE_SUPERVISOR_COREF.at(language), supervisor.co-ref)
+    } else { () },
   )
 }
